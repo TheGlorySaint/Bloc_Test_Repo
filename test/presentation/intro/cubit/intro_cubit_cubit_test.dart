@@ -134,7 +134,7 @@ void main() {
     );
     dio.httpClientAdapter = dioAdapter;
     dio.options.headers = _defaultHeaders;
-    baseUrl = 'https://musing-wescoff.82-165-53-146.plesk.page/api/v1/mobile/atuh/register';
+    baseUrl = 'www.example.com/api/v1/mobile/auth/register';
   });
 
   group('login()', () {
