@@ -1,56 +1,61 @@
 part of 'intro_cubit_cubit.dart';
 
-abstract class IntroState extends Equatable {
-  const IntroState();
+class SigninState extends Equatable {
+  final SigninStatusEnum status;
+  final Exception? exception;
+  final String? email;
+  final String? deviceID;
+  final String? pin;
+  final String? deviceOS;
+  final String? deviceModel;
+  final dynamic deviceDetails;
+  final String? deviceIP;
+  final String? lat;
+  final String? long;
 
-  @override
-  List<Object> get props => [];
-}
-
-class IntroCubitInitial extends IntroState {}
-
-class IntroCubitLoading extends IntroState {}
-
-class IntroCubitSaved extends IntroState {
-  final bool boolean;
-
-  const IntroCubitSaved({
-    required this.boolean,
+  const SigninState({
+    this.status = SigninStatusEnum.initial,
+    this.exception,
+    this.email,
+    this.deviceID,
+    this.pin,
+    this.deviceOS,
+    this.deviceModel,
+    this.deviceDetails,
+    this.deviceIP,
+    this.lat,
+    this.long,
   });
 
-  @override
-  List<Object> get props => [boolean];
-}
-
-class IntroCubitNotSaved extends IntroState {
-  final bool boolean;
-
-  const IntroCubitNotSaved({
-    required this.boolean,
-  });
-
-  @override
-  List<Object> get props => [boolean];
-}
-
-class IntroCubitSuccess extends IntroState {
-  final bool boolean;
-
-  const IntroCubitSuccess({
-    required this.boolean,
-  });
-
-  @override
-  List<Object> get props => [boolean];
-}
-
-class IntroCubitError extends IntroState {
-  final AppError appError;
-
-  const IntroCubitError({
-    required this.appError,
-  });
+  SigninState copyWith({
+    SigninStatusEnum? status,
+    Exception? exception,
+    String? email,
+    String? deviceID,
+    String? pin,
+    String? deviceOS,
+    String? deviceModel,
+    dynamic deviceDetails,
+    String? deviceIP,
+    String? lat,
+    String? long,
+  }) {
+    return SigninState(
+      status: status ?? this.status,
+      exception: exception ?? this.exception,
+      email: email ?? this.email,
+      deviceID: deviceID ?? this.deviceID,
+      pin: pin ?? this.pin,
+      deviceOS: deviceOS ?? this.deviceOS,
+      deviceModel: deviceModel ?? this.deviceModel,
+      deviceDetails: deviceDetails ?? this.deviceDetails,
+      deviceIP: deviceIP ?? this.deviceIP,
+      lat: lat ?? this.lat,
+      long: long ?? this.long,
+    );
+  }
 
   @override
-  List<Object> get props => [appError];
+  List<Object?> get props =>
+      [status, exception, email, deviceID, pin, deviceOS, deviceModel, deviceDetails, deviceIP, lat, long];
 }

@@ -1,106 +1,147 @@
+import 'dart:developer';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../error.dart';
+import '../auth_repo.dart';
+import '../device_repo.dart';
+import '../sign_in_enum.dart';
 
 part 'intro_cubit_state.dart';
 
-class IntroCubit extends Cubit<IntroState> {
-  final SharedPreferences sharedPreferences;
+class SigninCubit extends Cubit<SigninState> {
+  final AuthenticationRepository authenticationRepository;
+  final DeviceRepository deviceRepository;
 
-  IntroCubit({
-    required this.sharedPreferences,
-  }) : super(IntroCubitInitial());
+  SigninCubit({
+    required this.authenticationRepository,
+    required this.deviceRepository,
+  }) : super(const SigninState());
 
-  @visibleForTesting
-  static const String completedIntro = 'completedIntro';
-
-  // void completedIntroTutorial() {
-  //   emit(IntroCubitInitial());
-  //   emit(IntroCubitLoading());
-  //   try {
-  //     final bool = sharedPreferences.getBool(completedIntro) ?? false;
-  //     if (bool) {
-  //       emit(
-  //         IntroCubitSaved(boolean: bool),
-  //       );
-  //     } else {
-  //       emit(
-  //         IntroCubitNotSaved(boolean: bool),
-  //       );
-  //     }
-  //   } on Exception catch (exception) {
-  //     emit(
-  //       IntroCubitError(
-  //         appError: AppError(
-  //           message: exception.toString(),
-  //         ),
-  //       ),
-  //     );
-  //   }
-  // }
-
-  void completedIntroTutorial() {
-    emit(IntroCubitInitial());
-    emit(IntroCubitLoading());
+  void login() async {
+    emit(state.copyWith(status: SigninStatusEnum.initial));
+    emit(state.copyWith(status: SigninStatusEnum.loading));
     try {
-      final bool = sharedPreferences.getBool(completedIntro) ?? false;
+      final deviceModel = await deviceRepository.getDevice();
+      final deviceIP = await deviceRepository.getIP();
+      final position = await deviceRepository.getCurrentPosition();
       emit(
-        IntroCubitSuccess(boolean: bool),
+        state.copyWith(
+          deviceID: deviceModel!.identifierForVendor!,
+          deviceOS: deviceModel.os!,
+          deviceModel: deviceModel.model!,
+          deviceDetails: deviceModel,
+          deviceIP: deviceIP,
+          lat: position!.latitude.toString(),
+          long: position.longitude.toString(),
+          status: SigninStatusEnum.successSavedData,
+        ),
       );
+
+      final response = await authenticationRepository.login(
+        email: state.email!,
+        pin: state.pin!,
+        deviceID: deviceModel.identifierForVendor!,
+        deviceOS: deviceModel.os!,
+        deviceModel: deviceModel.model!,
+        deviceDetails: deviceModel,
+        deviceIP: deviceIP,
+        lat: position.latitude.toString(),
+        long: position.longitude.toString(),
+      );
+      if (response.data != null && response.isOkay && response.data?.didRegistrationWork == true) {
+        saveToken(response.data?.token);
+        // emit(state.copyWith(status: SigninStatusEnum.successfullloggedin));
+      }
     } on Exception catch (exception) {
+      log('register exception: $exception');
       emit(
-        IntroCubitError(
-          appError: AppError(
-            message: exception.toString(),
-          ),
+        state.copyWith(
+          status: SigninStatusEnum.failure,
+          exception: exception,
         ),
       );
     }
   }
 
-  void saveIntro() async {
-    emit(IntroCubitInitial());
-    emit(IntroCubitLoading());
+  void setEmail(String? address) async {
+    emit(state.copyWith(status: SigninStatusEnum.initial));
+    emit(state.copyWith(status: SigninStatusEnum.loading));
     try {
-      final bool = await sharedPreferences.setBool(completedIntro, true);
+      final bool = await authenticationRepository.saveEmail(address!);
+
       if (bool) {
         emit(
-          IntroCubitSaved(boolean: bool),
+          state.copyWith(
+            email: address,
+            status: SigninStatusEnum.successSetEMailAddress,
+          ),
         );
       } else {
         emit(
-          IntroCubitNotSaved(boolean: bool),
+          state.copyWith(
+            status: SigninStatusEnum.failedToSetEMailAddress,
+          ),
         );
       }
     } on Exception catch (exception) {
+      debugPrint('The storage is not cleared. Error: $exception');
       emit(
-        IntroCubitError(
-          appError: AppError(
-            message: exception.toString(),
-          ),
+        state.copyWith(
+          status: SigninStatusEnum.failure,
+          exception: exception,
         ),
       );
     }
   }
 
-  Future<void> clear() async {
-    emit(IntroCubitInitial());
+  void setPin(String? pinValue) {
+    emit(state.copyWith(status: SigninStatusEnum.initial));
+    emit(state.copyWith(status: SigninStatusEnum.loading));
     try {
-      await sharedPreferences.clear();
-
       emit(
-        const IntroCubitSaved(boolean: true),
+        state.copyWith(
+          pin: pinValue,
+          status: SigninStatusEnum.successSetPin,
+        ),
       );
-    } on Exception catch (e) {
-      debugPrint('The storage is not cleared. Error: $e');
+    } on Exception catch (exception) {
+      debugPrint('The storage is not cleared. Error: $exception');
       emit(
-        IntroCubitError(
-          appError: AppError(
-            message: e.toString(),
+        state.copyWith(
+          status: SigninStatusEnum.failure,
+          exception: exception,
+        ),
+      );
+    }
+  }
+
+  void saveToken(String? token) async {
+    emit(state.copyWith(status: SigninStatusEnum.initial));
+    emit(state.copyWith(status: SigninStatusEnum.loading));
+    try {
+      final bool = await authenticationRepository.saveToken(token!);
+
+      if (bool) {
+        emit(
+          state.copyWith(
+            status: SigninStatusEnum.successfullSavedToken,
           ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            status: SigninStatusEnum.failedToSaveToken,
+          ),
+        );
+      }
+    } on Exception catch (exception) {
+      debugPrint('The storage is not cleared. Error: $exception');
+      emit(
+        state.copyWith(
+          status: SigninStatusEnum.failure,
+          exception: exception,
         ),
       );
     }
